@@ -4,11 +4,11 @@ from __future__ import unicode_literals, print_function, division
 
 import argparse
 import os
+import socket
 import sys
 import struct
 import time
 
-from socket import socket
 from contextlib import closing
 
 try:
@@ -26,7 +26,7 @@ def send_file(filename, dest_ip):
     fbiinfo = struct.pack("!q", statinfo.st_size)
 
     with open(filename, "rb") as f:
-        with closing(socket()) as sock:
+        with closing(socket.socket()) as sock:
             try:
                 sock.connect((dest_ip, FBI_PORT))
             except ConnectionRefusedError:
@@ -38,7 +38,7 @@ def send_file(filename, dest_ip):
                 while True:
                     chunk = f.read(CHUNK_SIZE)
                     if not chunk:
-                        break # EOF
+                        break  # EOF
                     bytes_transferred += sock.send(chunk)
                     sys.stdout.write("\rProgress: {:.2f}KB of {:.2f}KB"
                             .format(bytes_transferred / KB, statinfo.st_size / KB))
@@ -59,10 +59,15 @@ def main():
         dest_ip = args.ip
     else:
         dest_ip = input("Enter IP: ")
+    try:
+        socket.inet_aton(dest_ip)
+    except socket.error:
+        sys.exit("IP {} is invalid.".format(dest_ip))
+
     for filename in args.file:
         if os.path.isfile(filename):
             print("Sending file {}".format(filename))
-            time.sleep(WAIT_TIME)
+            time.sleep(WAIT_TIME)  # Wait a while for the next transfer
             send_file(filename, dest_ip)
         else:
             sys.exit("{} is not a file.".format(filename))
