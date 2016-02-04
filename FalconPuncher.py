@@ -18,8 +18,8 @@ except NameError:
 
 FBI_PORT = 5000
 KB = 1024
-CHUNK_SIZE = 128 * KB 
-WAIT_TIME = 1.5
+CHUNK_SIZE = 128 * KB
+WAIT_TIME = 2
 
 def send_file(filename, dest_ip):
     statinfo = os.stat(filename)
@@ -46,6 +46,13 @@ def send_file(filename, dest_ip):
             except ConnectionResetError:
                 sys.exit("\nConnection closed by FBI. Check FBI for errors.")
 
+def check_and_send_file(filename, dest_ip):
+    if os.path.isfile(filename):
+        print("Sending file {}".format(filename))
+        send_file(filename, dest_ip)
+    else:
+        sys.exit("{} is not a file.".format(filename))
+
 def argparser():
     parser = argparse.ArgumentParser(description="Send CIA files to FBI via network.")
     parser.add_argument("file", nargs="+", help="CIA file to send to FBI")
@@ -64,13 +71,12 @@ def main():
     except socket.error:
         sys.exit("IP {} is invalid.".format(dest_ip))
 
-    for filename in args.file:
-        if os.path.isfile(filename):
-            print("Sending file {}".format(filename))
-            time.sleep(WAIT_TIME)  # Wait a while for the next transfer
-            send_file(filename, dest_ip)
-        else:
-            sys.exit("{} is not a file.".format(filename))
+    for filename in args.file[:-1]:
+        check_and_send_file(filename, dest_ip)
+        print("Waiting {}s until the next transfer.".format(WAIT_TIME))
+        time.sleep(WAIT_TIME)
+    # We don't need to wait in the last transfer of the list
+    check_and_send_file(args.file[-1], dest_ip)
 
 
 if __name__ == "__main__":
