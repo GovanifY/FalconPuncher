@@ -4,7 +4,7 @@ FalconPuncher
 Send CIA files to FBI via network
 ---------------------------------
 
-This is a fork of [blockfeed/FalconPunch](https://github.com/blockfeed/FalconPunch.git) with support for Python 3 (Python 2 is still supported), better user interface (still completely command line-based) and better error handling. This program can be used with a 3DS with [Steveice10/FBI](https://github.com/Steveice10/FBI) installed to transfer CIA files to 3DS using network instead of manually copying files to SD card. This is somewhat slowever, however it has the advantage of not using double the space to install.
+This is a fork of [blockfeed/FalconPunch](https://github.com/blockfeed/FalconPunch.git) with support for Python 3 (Python 2 is still supported), better user interface (still completely command line-based) and better error handling. This program can be used with a 3DS with [Steveice10/FBI](https://github.com/Steveice10/FBI) installed to transfer CIA files to 3DS using network instead of manually copying files to SD card. This is somewhat slower, however it has the advantage of not using double the space to install.
 
 Usage
 -----
