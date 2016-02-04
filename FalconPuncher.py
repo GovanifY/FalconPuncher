@@ -17,8 +17,8 @@ except NameError:
     pass
 
 FBI_PORT = 5000
-CHUNK_SIZE = 32786
 KB = 1024
+CHUNK_SIZE = 128 * KB 
 WAIT_TIME = 1.5
 
 def send_file(filename, dest_ip):
