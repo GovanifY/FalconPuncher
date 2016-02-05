@@ -42,7 +42,7 @@ def send_file(filename, dest_ip):
                         break  # EOF
                     bytes_transferred = sock.send(chunk)
                     total_transferred += bytes_transferred
-                    sys.stdout.write("\r{}: Speed: {:.1f}KB/s / Progress: {:3.1f}%".format(
+                    sys.stdout.write("\r{} - S:{:.1f}KB/s / P:{:3.1f}%".format(
                                 filename,
                                 bytes_transferred / KB ** 2 / (time.clock() - start),
                                 total_transferred / statinfo.st_size * 100))
