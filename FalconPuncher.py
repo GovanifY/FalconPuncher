@@ -40,15 +40,14 @@ def send_file(filename, dest_ip):
                     if not chunk:
                         break  # EOF
                     bytes_transferred += sock.send(chunk)
-                    sys.stdout.write("\rProgress: {:.2f}KB of {:.2f}KB"
-                            .format(bytes_transferred / KB, statinfo.st_size / KB))
+                    sys.stdout.write("\r{}: {:3.1f}%".format(filename,
+                        bytes_transferred / statinfo.st_size * 100))
                 sys.stdout.write("\n")
             except ConnectionResetError:
                 sys.exit("\nConnection closed by FBI. Check FBI for errors.")
 
 def check_and_send_file(filename, dest_ip):
     if os.path.isfile(filename):
-        print("Sending file {}".format(filename))
         send_file(filename, dest_ip)
     else:
         sys.exit("{} is not a file.".format(filename))
