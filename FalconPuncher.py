@@ -25,7 +25,7 @@ try:
 except NameError:
     pass
 
-DEBUG = True
+DEFAULT_IP = "192.168.1."
 FBI_PORT = 5000
 KB = 1024
 CHUNK_SIZE = 128 * KB
@@ -35,49 +35,59 @@ class GUI(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.title("FalconPuncher")
+        self.geometry("400x600")
 
         # Create a listbox to show user filelist
+        self.lbl_filelist = tk.Label(
+                text="CIA list (double click to add to queue):",
+                anchor=tk.W)
+        self.lbl_filelist.pack(side=tk.TOP, fill=tk.X)
         self.lb_filelist = tk.Listbox(selectmode=tk.SINGLE)
-        self.lb_filelist.pack(side=tk.LEFT)
+        self.lb_filelist.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.populate_filelist("*.cia")
         self.lb_filelist.bind("<Double-Button-1>", self.add_file_to_sendlist)
         # Create a scrollbar to allow filelist to an arbitrary number of files
-        self.sb_filelist = tk.Scrollbar(orient=tk.VERTICAL)
-        self.sb_filelist.pack(side=tk.LEFT, fill=tk.Y)
+        self.sb_filelist = tk.Scrollbar(self.lb_filelist, orient=tk.VERTICAL)
+        self.sb_filelist.pack(side=tk.RIGHT, fill=tk.Y)
         # Bind listbox and scrollbar together
         self.sb_filelist.configure(command=self.lb_filelist.yview)
         self.lb_filelist.configure(yscrollcommand=self.sb_filelist.set)
 
         # Create a listbox to show user the files selected to send
+        self.lbl_sendlist = tk.Label(
+                text="CIA's in queue (double click to remove from queue):",
+		anchor=tk.W)
+        self.lbl_sendlist.pack(side=tk.TOP, fill=tk.X, expand=False)
         self.lb_sendlist = tk.Listbox(selectmode=tk.SINGLE)
-        self.lb_sendlist.pack(side=tk.LEFT)
+        self.lb_sendlist.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.lb_sendlist.bind("<Double-Button-1>", self.remove_file_from_sendlist)
         # Create a scrollbar to allow filelist to an arbitrary number of files
-        self.sb_sendlist = tk.Scrollbar(orient=tk.VERTICAL)
-        self.sb_sendlist.pack(side=tk.LEFT, fill=tk.Y)
+        self.sb_sendlist = tk.Scrollbar(self.lb_sendlist, orient=tk.VERTICAL)
+        self.sb_sendlist.pack(side=tk.RIGHT, fill=tk.Y)
         # Bind listbox and scrollbar together
         self.sb_sendlist.configure(command=self.lb_sendlist.yview)
         self.lb_sendlist.configure(yscrollcommand=self.sb_sendlist.set)
 
         # Textbox to allow user to change IP
-        self.label_ip = tk.Label(text="IP:")
-        self.label_ip.pack()
+        self.lbl_ip = tk.Label(text="IP (press Y in FBI to show 3DS IP):",
+                anchor=tk.W)
+        self.lbl_ip.pack(side=tk.TOP, fill=tk.X)
         self.ip = tk.StringVar()
+        self.ip.set(DEFAULT_IP)
         self.ent_ip = tk.Entry(textvariable=self.ip)
-        self.ent_ip.pack()
+        self.ent_ip.pack(side=tk.TOP, fill=tk.X)
 
         # Button to start file transferring
-        self.btn_start = tk.Button(text="Start", command=self.start_transfer)
-        self.btn_start.pack()
+        self.btn_start = tk.Button(text="Send", command=self.start_transfer)
+        self.btn_start.pack(side=tk.TOP, fill=tk.X)
 
         # Progress bar for send progress
         self.prg_send = ttk.Progressbar(orient="horizontal", mode="determinate")
-        self.prg_send.pack()
+        self.prg_send.pack(side=tk.TOP, fill=tk.X)
 
     def populate_filelist(self, regex="/*"):
         for filename in sorted(glob.glob(regex)):
             self.lb_filelist.insert(tk.END, filename)
-        debug("filelist:", self.get_files_from_filelist())
 
     def get_files_from_filelist(self):
         return self.lb_filelist.get(0, tk.END)
@@ -90,34 +100,31 @@ class GUI(tk.Tk):
         selection = self.lb_filelist.get(position)
         if selection not in self.get_files_from_sendlist():
             self.lb_sendlist.insert(tk.END, selection)
-        debug("sendlist:", self.get_files_from_sendlist())
 
     def remove_file_from_sendlist(self, event):
         position = self.lb_sendlist.curselection()[0]
         self.lb_sendlist.delete(position)
-        debug("sendlist:", self.get_files_from_sendlist())
 
     def start_transfer(self):
         if not self.get_files_from_sendlist():
             tkMessageBox.showerror("Error", "No files selected")
             return
-        if not self.ip.get():
+
+        dest_ip = self.ip.get()
+        if not dest_ip:
             tkMessageBox.showerror("Error", "Did not set an IP")
+            return
+        if not valid_ip(dest_ip):
+            tkMessageBox.showerror("Error", "Invalid IP")
             return
 
         for i, filename in enumerate(self.get_files_from_sendlist()):
-            for speed, progress in send_file(filename, self.ip.get()):
+            for progress in send_file(filename, dest_ip):
                 self.prg_send.step(progress)
                 self.update_idletasks()
             self.lb_sendlist.delete(0)
             self.update_idletasks()
             time.sleep(WAIT_TIME)
-
-def debug(value, *args, **kwargs):
-    if DEBUG:
-        if not "file" in kwargs:
-            kwargs.update({"file": sys.stderr})
-        print("DEBUG:", value, *args, **kwargs)
 
 def send_file(filename, dest_ip):
     statinfo = os.stat(filename)
@@ -132,53 +139,58 @@ def send_file(filename, dest_ip):
                         .format(dest_ip))
             try:
                 sock.send(fbiinfo)
-                total_transferred = 0
                 while True:
-                    bytes_transferred = 0
                     start = time.clock()
                     chunk = f.read(CHUNK_SIZE)
                     if not chunk:
                         return
-                    bytes_transferred = sock.send(chunk)
-                    total_transferred += bytes_transferred
-
-                    speed = bytes_transferred / KB ** 2 / (time.clock() - start)
-                    progress = bytes_transferred / statinfo.st_size * 100
-                    yield speed, progress
+                    yield sock.send(chunk) / statinfo.st_size * 100
 
             except ConnectionResetError:
                 sys.exit("\nConnection closed by FBI. Check FBI for errors.")
 
 def send_file_cli(filename, dest_ip):
-    basename = os.path.basename(filename)
     total_progress = 0
-    for speed, progress in send_file(filename, dest_ip):
+    for progress in send_file(filename, dest_ip):
         total_progress += progress
-        sys.stdout.write("\r{} - Speed: {:.1f}KB/s / Progress: {:3.1f}%"
-                .format(basename, speed, total_progress))
+        sys.stdout.write("\r{} - {:3.1f}%"
+                .format(filename, total_progress))
     sys.stdout.write("\n")
+
+def valid_ip(ip):
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
 
 def argparser():
     parser = argparse.ArgumentParser(description="Send CIA files to FBI via network.")
-    parser.add_argument("file", nargs="+", help="CIA file to send to FBI")
+    parser.add_argument("file", nargs="*", help="CIA file to send to FBI")
     parser.add_argument("-i", "--ip", help="IP from target 3DS")
+    parser.add_argument("--gui", action="store_true", help="force GUI mode")
     return parser
 
 def main():
     parser = argparser()
     args = parser.parse_args()
+
+    if args.gui or not args.file:
+        gui = GUI()
+        gui.mainloop()
+        sys.exit()
+
     if args.ip:
         dest_ip = args.ip
     else:
         dest_ip = input("Enter IP: ")
-    try:
-        socket.inet_aton(dest_ip)
-    except socket.error:
-        sys.exit("IP {} is invalid.".format(dest_ip))
 
     for filename in args.file:
         if not os.path.isfile(filename):
             sys.exit("{} not found or is not a file.".format(filename))
+
+    if not valid_ip(dest_ip):
+        sys.exit("IP {} is invalid.".format(ip))
 
     for filename in args.file[:-1]:
         send_file_cli(filename, dest_ip)
@@ -189,9 +201,7 @@ def main():
 
 
 if __name__ == "__main__":
-    gui = GUI()
-    gui.mainloop()
-    #try:
-    #   main()
-    #except KeyboardInterrupt:
-    #    pass
+    try:
+       main()
+    except KeyboardInterrupt:
+        pass
