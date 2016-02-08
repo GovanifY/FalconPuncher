@@ -39,22 +39,23 @@ def send_file(filename, dest_ip):
                     start = time.clock()
                     chunk = f.read(CHUNK_SIZE)
                     if not chunk:
-                        break  # EOF
+                        return None  # EOF
                     bytes_transferred = sock.send(chunk)
                     total_transferred += bytes_transferred
-                    sys.stdout.write("\r{} - Speed: {:.1f}KB/s / Progress: {:3.1f}%".format(
-                                filename,
-                                bytes_transferred / KB ** 2 / (time.clock() - start),
-                                total_transferred / statinfo.st_size * 100))
-                sys.stdout.write("\n")
+
+                    speed = bytes_transferred / KB ** 2 / (time.clock() - start)
+                    progress = total_transferred / statinfo.st_size * 100
+                    yield speed, progress
+
             except ConnectionResetError:
                 sys.exit("\nConnection closed by FBI. Check FBI for errors.")
 
-def check_and_send_file(filename, dest_ip):
-    if os.path.isfile(filename):
-        send_file(filename, dest_ip)
-    else:
-        sys.exit("{} not found or is not a file.".format(filename))
+def send_file_cli(filename, dest_ip):
+    basename = os.path.basename(filename)
+    for speed, progress in send_file(filename, dest_ip):
+        sys.stdout.write("\r{} - Speed: {:.1f}KB/s / Progress: {:3.1f}%"
+                .format(basename, speed, progress))
+    sys.stdout.write("\n")
 
 def argparser():
     parser = argparse.ArgumentParser(description="Send CIA files to FBI via network.")
@@ -74,12 +75,16 @@ def main():
     except socket.error:
         sys.exit("IP {} is invalid.".format(dest_ip))
 
+    for filename in args.file:
+        if not os.path.isfile(filename):
+            sys.exit("{} not found or is not a file.".format(filename))
+
     for filename in args.file[:-1]:
-        check_and_send_file(filename, dest_ip)
+        send_file_cli(filename, dest_ip)
         print("Waiting {}s until the next transfer.".format(WAIT_TIME))
         time.sleep(WAIT_TIME)
     # We don't need to wait in the last transfer of the list
-    check_and_send_file(args.file[-1], dest_ip)
+    send_file_cli(args.file[-1], dest_ip)
 
 
 if __name__ == "__main__":
