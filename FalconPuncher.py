@@ -118,13 +118,26 @@ class GUI(tk.Tk):
             tkMessageBox.showerror("Error", "Invalid IP")
             return
 
-        for i, filename in enumerate(self.get_files_from_sendlist()):
-            for progress in send_file(filename, dest_ip):
-                self.prg_send.step(progress)
+        try:
+            for i, filename in enumerate(self.get_files_from_sendlist()):
+                for progress in send_file(filename, dest_ip):
+                    self.prg_send.step(progress)
+                    self.update_idletasks()
+                self.lb_sendlist.delete(0)
                 self.update_idletasks()
-            self.lb_sendlist.delete(0)
-            self.update_idletasks()
-            time.sleep(WAIT_TIME)
+                time.sleep(WAIT_TIME)
+        except ConnectionRefusedError:
+            tkMessageBox.showerror("Error",
+                    "Connection error. Is FBI running?")
+        except ConnectionResetError:
+            tkMessageBox.showerror("Error",
+                    "Connection closed by FBI. Check FBI for errors.")
+        except OSError:
+            tkMessageBox.showerror("Error",
+                    "No route to host. Is IP correct?")
+        finally:
+            self.prg_send.config(value=0)
+            return
 
 def send_file(filename, dest_ip):
     statinfo = os.stat(filename)
@@ -132,30 +145,29 @@ def send_file(filename, dest_ip):
 
     with open(filename, "rb") as f:
         with closing(socket.socket()) as sock:
-            try:
-                sock.connect((dest_ip, FBI_PORT))
-            except ConnectionRefusedError:
-                sys.exit("Connection error with IP {}. Is FBI running?"
-                        .format(dest_ip))
-            try:
-                sock.send(fbiinfo)
-                while True:
-                    start = time.clock()
-                    chunk = f.read(CHUNK_SIZE)
-                    if not chunk:
-                        return
-                    yield sock.send(chunk) / statinfo.st_size * 100
+            sock.connect((dest_ip, FBI_PORT))
+            sock.send(fbiinfo)
+            while True:
+                start = time.clock()
+                chunk = f.read(CHUNK_SIZE)
+                if not chunk:
+                    return
+                yield sock.send(chunk) / statinfo.st_size * 100
 
-            except ConnectionResetError:
-                sys.exit("\nConnection closed by FBI. Check FBI for errors.")
 
 def send_file_cli(filename, dest_ip):
-    total_progress = 0
-    for progress in send_file(filename, dest_ip):
-        total_progress += progress
-        sys.stdout.write("\r{} - {:3.1f}%"
-                .format(filename, total_progress))
-    sys.stdout.write("\n")
+    try:
+        total_progress = 0
+        for progress in send_file(filename, dest_ip):
+            total_progress += progress
+            sys.stdout.write("\r{} - {:3.1f}%".format(filename, total_progress))
+        sys.stdout.write("\n")
+    except ConnectionRefusedError:
+        sys.exit("Connection error. Is FBI running?")
+    except ConnectionResetError:
+        sys.exit("\nConnection closed by FBI. Check FBI for errors.")
+    except OSError:
+        sys.exit("No route to host. Is IP correct?")
 
 def valid_ip(ip):
     try:
@@ -190,7 +202,7 @@ def main():
             sys.exit("{} not found or is not a file.".format(filename))
 
     if not valid_ip(dest_ip):
-        sys.exit("IP {} is invalid.".format(ip))
+        sys.exit("IP {} is invalid.".format(dest_ip))
 
     for filename in args.file[:-1]:
         send_file_cli(filename, dest_ip)
