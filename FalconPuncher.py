@@ -11,7 +11,16 @@ import struct
 import time
 from contextlib import closing
 
+#########################
+# Default configuration #
+#########################
 GUI_ENABLED = True
+DEFAULT_IP = "192.168.1."
+FBI_PORT = 5000
+KB = 1024
+CHUNK_SIZE = 128 * KB
+WAIT_TIME = 2
+
 try:
     import tkinter as tk
     from tkinter import messagebox as tkMessageBox
@@ -25,17 +34,11 @@ except ImportError:
         GUI_ENABLED = False
         print("Tk is not installed in your system, GUI unavailable.",
                 file=sys.stderr)
-
 try:
     input = raw_input
 except NameError:
     pass
 
-DEFAULT_IP = "192.168.1."
-FBI_PORT = 5000
-KB = 1024
-CHUNK_SIZE = 128 * KB
-WAIT_TIME = 2
 
 if GUI_ENABLED:
     class GUI(tk.Tk):
