@@ -4,12 +4,20 @@ FalconPuncher
 Send CIA files to FBI via network
 ---------------------------------
 
-This is a fork of [blockfeed/FalconPunch](https://github.com/blockfeed/FalconPunch.git) with support for Python 3 (Python 2 is still supported), better user interface (still completely command line-based) and better error handling. This program can be used with a 3DS with [Steveice10/FBI](https://github.com/Steveice10/FBI) installed to transfer CIA files to 3DS using network instead of manually copying files to SD card. This is somewhat slower, however it has the advantage of not using double the space to install.
+This is a fork of [blockfeed/FalconPunch](https://github.com/blockfeed/FalconPunch.git) with support for Python 3 (Python 2 is still supported), better user interface (including a simple GUI, see screenshot below) and better error handling. This program can be used with a 3DS with [Steveice10/FBI](https://github.com/Steveice10/FBI) installed to transfer CIA files to 3DS using network instead of manually copying files to SD card. This is somewhat slower, however it has the advantage of not using double the space to install.
+
+![Screenshot](/screenshot.png?raw=true "FalconPuncher GUI")
 
 Usage
 -----
 
 FalconPuncher does not have any requirements besides a basic Python 2/3 installation. You can just download it ([direct link](https://raw.githubusercontent.com/m45t3r/FalconPuncher/master/FalconPuncher.py)) and run:
+
+    $ python FalconPuncher.py
+
+This will open the GUI (Graphical User Interface). Open FalconPuncher inside the directory containing the CIAs, since it does not offer any option to change directories.
+
+If you want to use FalconPuncher via command-line, you can start by running:
 
     $ python FalconPuncher.py -h
 
