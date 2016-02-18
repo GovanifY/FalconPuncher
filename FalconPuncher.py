@@ -95,6 +95,11 @@ if GUI_ENABLED:
             self.btn_start = tk.Button(text="Send", command=self.start_transfer)
             self.btn_start.pack(side=tk.TOP, fill=tk.X)
 
+            # Label to show current transferring file
+            self.var_sending = tk.StringVar()
+            self.lbl_sending = tk.Label(textvariable=self.var_sending, anchor=tk.W)
+            self.lbl_sending.pack(side=tk.TOP, fill=tk.X)
+
             # Progress bar for send progress
             self.prg_send = ttk.Progressbar(orient="horizontal",
                     mode="determinate")
@@ -135,6 +140,7 @@ if GUI_ENABLED:
 
             try:
                 for i, filename in enumerate(self.get_files_from_sendlist()):
+                    self.var_sending.set("Current file: {}".format(filename))
                     for progress in send_file(filename, dest_ip):
                         self.prg_send.step(progress)
                         self.update_idletasks()
@@ -151,7 +157,9 @@ if GUI_ENABLED:
                 tkMessageBox.showerror("Error",
                         "No route to host. Is IP correct?")
             finally:
+                self.var_sending.set("")
                 self.prg_send.config(value=0)
+                self.update_idletasks()
                 return
 
 def send_file(filename, dest_ip):
