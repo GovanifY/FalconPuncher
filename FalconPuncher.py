@@ -106,8 +106,14 @@ if GUI_ENABLED:
             self.prg_send.pack(side=tk.TOP, fill=tk.X)
 
         def populate_filelist(self, regex="/*"):
-            for filename in sorted(glob.glob(regex)):
-                self.lb_filelist.insert(tk.END, filename)
+            files = sorted(glob.glob(regex))
+            if files:
+                for filename in files:
+                    self.lb_filelist.insert(tk.END, filename)
+            else:
+                tkMessageBox.showerror("Error", "The program couldn't find any .cia files in this folder, "
+                                                "make sure you have a .cia file in the same folder as the "
+                                                "program's folder.")
 
         def get_files_from_filelist(self):
             return self.lb_filelist.get(0, tk.END)
