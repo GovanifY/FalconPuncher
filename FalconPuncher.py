@@ -52,6 +52,11 @@ if GUI_ENABLED:
                     text="CIA list (double click to add to queue):",
                     anchor=tk.W)
             self.lbl_filelist.pack(side=tk.TOP, fill=tk.X)
+
+            # Button to refresh filelist.
+            self.btn_refresh = tk.Button(text="Refresh", command=self.refresh_filelist)
+            self.btn_refresh.pack(side=tk.TOP, fill=tk.X)
+
             self.lb_filelist = tk.Listbox(selectmode=tk.SINGLE)
             self.lb_filelist.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
             self.populate_filelist("*.cia")
@@ -167,6 +172,12 @@ if GUI_ENABLED:
                 self.prg_send.config(value=0)
                 self.update_idletasks()
                 return
+
+        def refresh_filelist(self):
+            current_size = self.lb_filelist.size()
+            if current_size > 0:
+                self.lb_filelist.delete(first=0, last=current_size)
+            self.populate_filelist("*.cia")
 
 def send_file(filename, dest_ip):
     statinfo = os.stat(filename)
